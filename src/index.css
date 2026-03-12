@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+  background: #0f172a;
+  color: #f1f5f9;
+  overflow: hidden;
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* PDF canvas wrapper */
+.pdf-viewport {
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.pdf-viewport.panning { cursor: grabbing; }
+.pdf-viewport.annotating { cursor: crosshair; }
+.pdf-viewport.drawing { cursor: crosshair; }
+.pdf-viewport.waypointing { cursor: cell; }
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #1e293b; }
+::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+/* Annotation dot */
+.ann-dot {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid white;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.5);
+  transition: transform 0.15s;
+  z-index: 10;
+}
+.ann-dot:hover { transform: translate(-50%, -50%) scale(1.3); }
+
+/* Waypoint icon */
+.wp-icon {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  z-index: 10;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+  transition: transform 0.15s;
+}
+.wp-icon:hover { transform: translate(-50%, -50%) scale(1.25); }
