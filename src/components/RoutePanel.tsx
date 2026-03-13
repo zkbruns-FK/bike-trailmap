@@ -291,7 +291,7 @@ export function RoutePanel({ route, onUpdate, onClose, onDeleteAnnotation, onDel
                     </button>
                   </div>
                   <p className="text-xs text-slate-600 mt-1 ml-5">
-                    Page {ann.page} · {new Date(ann.createdAt).toLocaleDateString()}
+                    {new Date(ann.createdAt).toLocaleDateString()}
                   </p>
                 </div>
               ))
@@ -314,7 +314,6 @@ export function RoutePanel({ route, onUpdate, onClose, onDeleteAnnotation, onDel
                   <WaypointIcon type={wp.type} size={24} />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-slate-300 capitalize">{wp.type}</p>
-                    <p className="text-xs text-slate-600">Page {wp.page}</p>
                   </div>
                   <button
                     onClick={() => onDeleteWaypoint(wp.id)}
