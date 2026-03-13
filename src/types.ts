@@ -4,9 +4,8 @@ export type WaypointType = 'parking' | 'water' | 'restroom' | 'viewpoint' | 'cau
 
 export interface Annotation {
   id: string;
-  x: number;       // relative 0–1 on the PDF canvas
-  y: number;
-  page: number;
+  lat: number;
+  lng: number;
   text: string;
   color: string;
   createdAt: string;
@@ -14,9 +13,8 @@ export interface Annotation {
 
 export interface Waypoint {
   id: string;
-  x: number;
-  y: number;
-  page: number;
+  lat: number;
+  lng: number;
   type: WaypointType;
   label: string;
 }
@@ -25,7 +23,7 @@ export interface RideLogEntry {
   id: string;
   date: string;
   conditions: string;
-  duration: string;   // e.g. "2h 15m"
+  duration: string;
   notes: string;
 }
 
@@ -34,7 +32,7 @@ export interface Route {
   name: string;
   description: string;
   pdfName: string;
-  pdfData: string;        // base64
+  pdfData: string;       // base64 full PDF
   pdfPages: number;
   difficulty: Difficulty;
   terrainType: TerrainType;
@@ -47,15 +45,15 @@ export interface Route {
   rideLog: RideLogEntry[];
   createdAt: string;
   updatedAt: string;
-  thumbnailData?: string;  // base64 of first page thumbnail
+  // Where the PDF sits on the real map: [[southLat, westLng], [northLat, eastLng]]
+  bounds?: [[number, number], [number, number]];
 }
 
 export type DrawingColor = '#ef4444' | '#3b82f6' | '#f59e0b' | '#22c55e' | '#a855f7';
 
 export interface DrawingStroke {
   id: string;
-  page: number;
-  points: { x: number; y: number }[];
+  points: { lat: number; lng: number }[];
   color: DrawingColor;
   width: number;
 }
