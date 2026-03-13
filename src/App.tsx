@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
-import { PdfViewer } from './components/PdfViewer';
+import { MapView } from './components/MapView';
+import type { InteractionMode } from './components/MapView';
 import { Toolbar } from './components/Toolbar';
 import { RoutePanel } from './components/RoutePanel';
 import { UploadModal } from './components/UploadModal';
@@ -13,8 +14,6 @@ import {
 import type { Route, Annotation, Waypoint, DrawingStroke, DrawingColor, WaypointType } from './types';
 import { Bike, PanelRightClose, PanelRightOpen } from 'lucide-react';
 
-type InteractionMode = 'pan' | 'annotate' | 'draw' | 'waypoint' | 'erase';
-
 export default function App() {
   const [routes, setRoutes] = useState<Route[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -25,8 +24,8 @@ export default function App() {
   const [drawWidth, setDrawWidth] = useState(4);
   const [waypointType, setWaypointType] = useState<WaypointType>('parking');
   const [strokes, setStrokes] = useState<DrawingStroke[]>([]);
+  const [overlayOpacity, setOverlayOpacity] = useState(0.6);
 
-  // Load routes on mount
   useEffect(() => {
     const stored = loadRoutes();
     setRoutes(stored);
@@ -35,16 +34,11 @@ export default function App() {
 
   const activeRoute = routes.find(r => r.id === activeId) ?? null;
 
-  // Load drawings when active route changes
   useEffect(() => {
-    if (activeId) {
-      setStrokes(loadDrawings(activeId));
-    } else {
-      setStrokes([]);
-    }
+    if (activeId) setStrokes(loadDrawings(activeId));
+    else setStrokes([]);
   }, [activeId]);
 
-  // Persist drawings whenever they change
   useEffect(() => {
     if (activeId) saveDrawings(activeId, strokes);
   }, [strokes, activeId]);
@@ -58,18 +52,13 @@ export default function App() {
     setShowUpload(false);
   };
 
-  const handleSelectRoute = (id: string) => {
-    setActiveId(id);
-    setMode('pan');
-  };
+  const handleSelectRoute = (id: string) => { setActiveId(id); setMode('pan'); };
 
   const handleDeleteRoute = (id: string) => {
     deleteRoute(id);
     const updated = loadRoutes();
     setRoutes(updated);
-    if (activeId === id) {
-      setActiveId(updated.length > 0 ? updated[0].id : null);
-    }
+    if (activeId === id) setActiveId(updated.length > 0 ? updated[0].id : null);
   };
 
   const handleToggleFavorite = (id: string) => {
@@ -79,10 +68,7 @@ export default function App() {
     refreshRoutes();
   };
 
-  const handleUpdateRoute = (route: Route) => {
-    updateRoute(route);
-    refreshRoutes();
-  };
+  const handleUpdateRoute = (route: Route) => { updateRoute(route); refreshRoutes(); };
 
   const handleAnnotationAdd = (ann: Annotation) => {
     if (!activeId) return;
@@ -108,17 +94,16 @@ export default function App() {
     refreshRoutes();
   };
 
-  const handleUndoStroke = useCallback(() => {
-    setStrokes(prev => prev.slice(0, -1));
-  }, []);
+  const handleBoundsSet = (bounds: [[number, number], [number, number]]) => {
+    if (!activeRoute) return;
+    handleUpdateRoute({ ...activeRoute, bounds, updatedAt: new Date().toISOString() });
+  };
 
-  const handleClearDrawings = useCallback(() => {
-    setStrokes([]);
-  }, []);
+  const handleUndoStroke = useCallback(() => setStrokes(prev => prev.slice(0, -1)), []);
+  const handleClearDrawings = useCallback(() => setStrokes([]), []);
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-950">
-      {/* Sidebar */}
       <Sidebar
         routes={routes}
         activeRouteId={activeId}
@@ -129,7 +114,6 @@ export default function App() {
         onUploadClick={() => setShowUpload(true)}
       />
 
-      {/* Main area */}
       <div className="flex-1 flex flex-col min-w-0 relative">
         {activeRoute ? (
           <>
@@ -142,31 +126,36 @@ export default function App() {
               setDrawWidth={setDrawWidth}
               waypointType={waypointType}
               setWaypointType={setWaypointType}
+              overlayOpacity={overlayOpacity}
+              setOverlayOpacity={setOverlayOpacity}
+              hasBounds={!!activeRoute.bounds}
               onUndo={handleUndoStroke}
               onClearDrawings={handleClearDrawings}
               hasStrokes={strokes.length > 0}
               routeName={activeRoute.name}
             />
             <div className="flex flex-1 min-h-0">
-              <PdfViewer
+              <MapView
                 route={activeRoute}
                 mode={mode}
                 drawColor={drawColor}
                 drawWidth={drawWidth}
                 waypointType={waypointType}
                 strokes={strokes}
+                overlayOpacity={overlayOpacity}
                 onAnnotationAdd={handleAnnotationAdd}
                 onAnnotationDelete={handleAnnotationDelete}
                 onWaypointAdd={handleWaypointAdd}
                 onWaypointDelete={handleWaypointDelete}
                 onStrokesChange={setStrokes}
+                onBoundsSet={handleBoundsSet}
+                onModeChange={setMode}
               />
-              {/* Toggle panel button */}
               <button
                 onClick={() => setShowPanel(p => !p)}
                 className="absolute z-20 bg-slate-700 hover:bg-slate-600 text-slate-300 p-1.5 rounded-l border-l border-y border-slate-600 shadow"
                 style={{ right: showPanel ? '288px' : '0', top: '50%', transform: 'translateY(-50%)' }}
-                title={showPanel ? 'Hide details panel' : 'Show details panel'}
+                title={showPanel ? 'Hide details' : 'Show details'}
               >
                 {showPanel ? <PanelRightClose size={14} /> : <PanelRightOpen size={14} />}
               </button>
@@ -182,13 +171,12 @@ export default function App() {
             </div>
           </>
         ) : (
-          /* Empty state */
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
             <div className="bg-slate-800 rounded-2xl p-10 border border-slate-700 max-w-sm">
               <Bike size={48} className="mx-auto mb-4 text-trail-500 opacity-60" />
               <h2 className="text-lg font-bold text-white mb-2">Welcome to TrailMap</h2>
               <p className="text-sm text-slate-400 mb-6">
-                Upload your bike club's PDF maps for an interactive riding experience — annotate, highlight routes, log rides, and more.
+                Upload your bike club's PDF maps. Place them on a real map, annotate, track rides, and navigate with GPS.
               </p>
               <button
                 onClick={() => setShowUpload(true)}
@@ -198,12 +186,12 @@ export default function App() {
               </button>
               <div className="mt-6 grid grid-cols-2 gap-3 text-left">
                 {[
-                  ['🗺️', 'Zoom & Pan', 'Navigate maps like Google Maps'],
-                  ['✏️', 'Draw Routes', 'Highlight your path on the map'],
+                  ['🗺️', 'Real Map Base', 'OpenStreetMap underneath your PDF'],
+                  ['📄', 'PDF Overlay', 'Place your club map on the real map'],
                   ['📍', 'Waypoints', 'Mark parking, water, viewpoints'],
-                  ['📝', 'Notes', 'Add notes at any map location'],
-                  ['⭐', 'Favorites', 'Star your go-to routes'],
-                  ['📅', 'Ride Log', 'Track every ride with conditions'],
+                  ['✏️', 'Draw Routes', 'Highlight your path with colors'],
+                  ['📝', 'Notes', 'Add notes pinned to real locations'],
+                  ['🧭', 'GPS Location', 'See where you are while riding'],
                 ].map(([icon, title, desc]) => (
                   <div key={String(title)} className="bg-slate-700/50 rounded-lg p-2.5">
                     <p className="text-sm mb-0.5">{icon} <span className="text-white font-medium">{title}</span></p>
